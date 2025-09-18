@@ -1,3 +1,5 @@
+import { BASE_URL } from "./config/index.js";
+//plantilla para enviar mensaje por popups
 export function getTemplate(option, params = {}) {
   const {
     nombre = '',
@@ -5,36 +7,77 @@ export function getTemplate(option, params = {}) {
     hora = ''
   } = params;
 
-    return `✨ ¡Hola ${nombre}! ✨
-Sabemos que aprender sobre lo digital es la clave para que tu proyecto sea único y llamativo 💡🌐.
+  console.log("📝 Plantilla generada:", params);
+
+
+
+  switch (option) {
+
+    case 'cita_gratis'://bienvenida
+      return {
+        text: `✨ ¡Hola ${nombre}! ✨
+            Sabemos que aprender sobre lo digital es la clave para que tu proyecto sea único y llamativo 💡🌐.
 
 En DigiMedia desarrollamos estrategias innovadoras y auténticas que conectan con jóvenes como tú 🙌🎯.
 
 📱 Desde la gestión de tus redes hasta campañas que realmente venden 💰🔥, queremos llevar tu marca al siguiente nivel 🚀.
 
 ¿Quieres que te muestre cómo lograr que tus ideas brillen en internet? 🌟💻
- 👉 Escríbeme y lo hacemos realidad juntos. 🤝✨`;
+👉 Escríbeme y lo hacemos realidad juntos. 🤝✨`,
+        image: `${BASE_URL}/public/imagenes/Flyer.jpg`
+      };
 
-//   switch (option) {
-//     case 'cita_gratis':
-//       return `¡Hola 👋
-
-// ✅ Tu primera cita GRATUITA ha sido confirmada:
-
-// 📅 Fecha: ${fecha}
-// 🕐 Hora: ${hora}
-// 👨‍⚕️ Psicólogo: ${nombre}
-
-// 🎉 ¡Recuerda que tu primera consulta es completamente GRATIS!
-
-// Si tienes alguna consulta, no dudes en contactarnos.
-
-// ¡Te esperamos! 🌟`;
-
-//     default:
-//       return 'Opción de plantilla no válida.';
-//   }
+    default:
+      return {
+        text: `Hola ${nombre}, este es un mensaje automático.`,
+        image: `${BASE_URL}/public/imagenes/default.jpg`
+      };
+  }
 }
+
+//plantilla para enviar mensaje de acuerdo al mensaje
+export function getTemplateMessage(option, params = {}) {
+  const {
+    nombre = '',
+    fecha = '',
+    hora = '',
+    image=''
+  } = params;
+
+  console.log("📝 Plantilla generada:", params);
+
+
+
+  switch (option) {
+    case 'cita_gratis':
+      return {
+        text: `¡Hola 👋
+
+✅ Tu primera cita GRATUITA ha sido confirmada:
+
+📅 Fecha: ${fecha}
+🕐 Hora: ${hora}
+👨‍⚕️ Psicólogo: ${nombre}
+
+🎉 ¡Recuerda que tu primera consulta es completamente GRATIS!
+
+Si tienes alguna consulta, no dudes en contactarnos.
+
+¡Te esperamos! 🌟`,
+        image: image || `${BASE_URL}/public/imagenes/Flyer.jpg`
+      };
+
+    default:
+      return {
+        text: `Hola ${nombre}, este es un mensaje automático.`,
+        image: `${BASE_URL}/public/imagenes/Flyer.jpg`
+      };
+  }
+}
+
+
+
+
 
 // Template para mensaje de pago aceptado
 export function getAcceptanceTemplate(comentario = '') {
