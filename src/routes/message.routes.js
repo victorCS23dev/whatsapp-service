@@ -12,7 +12,8 @@ import {
   getReconnectionStatus,
   sendMessageWithImage,
   sendMessageAccept,
-  sendMessageReject
+  sendMessageReject,
+  sendMessageWithImageDashboard
 } from '../controllers/message.controller.js';
 import { 
   validateSendMessage, 
@@ -21,12 +22,15 @@ import {
   validateSendMessageReject 
 } from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
+import { upload } from '../config/message.config.js';
 import { Router } from 'express';
 
 const router = Router();
 
 // router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSendMessage, sendMessage);
 router.post('/send-message', sendMessage);
+router.post('/send-message-image', upload.single("image"), sendMessageWithImageDashboard);
+
 router.post('/send-message-accept', validateSendMessageAccept, sendMessageAccept);
 router.post('/send-message-reject', validateSendMessageReject, sendMessageReject);
 router.get('/sent-messages', authenticateJWT, authorizeRole('admin'), getSentMessages);
