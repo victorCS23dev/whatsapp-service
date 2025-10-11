@@ -66,68 +66,91 @@ const connectionState = {
 // }
 
 
-// function handleIncomingMessage(userId, message) {
-//   let conv = connectionState.conversations.get(userId);
-
-//   const now = Date.now();
-//   if (!conv) {
-//     conv = { step: "start", lastInteraction: now,timeout: null };
-//   }
-//     if (conv.timeout) {
-//     clearTimeout(conv.timeout);
-//   }
-//   conv.timeout = setTimeout(() => {
-//     connectionState.socket.sendMessage(userId, {
-//       text: "⌛ Como no interactuaste en el último minuto, voy a cerrar esta conversación.\n\n¡Hasta luego! 👋"
-//     });
-//     connectionState.conversations.delete(userId); // limpiamos la sesión
-//   }, 60 * 1000);
-
-//   conv.lastInteraction = now;
-
-//   const currentStep = chatbotFlow[conv.step];
-//   const option = message.trim();
-
-//   if (currentStep.next[option]) {
-//     const nextStep = currentStep.next[option];
-//     connectionState.conversations.set(userId, { step: nextStep, ...conv  });
-//     return chatbotFlow[nextStep].message;
-
-//   }
-//   connectionState.conversations.set(userId, conv);
-
-//   return `❌ Opción no válida.\n\n${currentStep.message}`;
-//     // return { message: `❌ Opción no válida.\n\n${currentStep.message}` };
-// }
-
-
-
-
-
-
-
 function handleIncomingMessage(userId, message) {
-  const conv = connectionState.conversations.get(userId) || { step: "start" };
-  const currentStep = chatbotFlow[conv.step];
-  const option = message.trim().toLowerCase();
+  let conv = connectionState.conversations.get(userId);
 
-    if (conv.step === "start") {
-    connectionState.conversations.set(userId, { step: "start" });
-    return chatbotFlow.start;
+  const now = Date.now();
+  if (!conv) {
+    conv = { step: "start", lastInteraction: now,timeout: null };
+        connectionState.conversations.set(userId, conv);
+    return chatbotFlow.start.message; 
   }
+    if (conv.timeout) {
+    clearTimeout(conv.timeout);
+  }
+  // conv.timeout = setTimeout(() => {
+  //   connectionState.socket.sendMessage(userId, {
+  //     text: "⌛ Como no interactuaste en el último minuto, voy a cerrar esta conversación.\n\n¡Hasta luego! 👋"
+  //   });
+  //   connectionState.conversations.delete(userId); // limpiamos la sesión
+  // }, 60 * 1000);
+
+  conv.lastInteraction = now;
+
+  const currentStep = chatbotFlow[conv.step];
+  const option = message.trim();
+
+
 
   if (currentStep.next[option]) {
     const nextStep = currentStep.next[option];
-    connectionState.conversations.set(userId, { step: nextStep });
-    return chatbotFlow[nextStep];
-  }
 
-  // ❌ Caso inválido
-  return {
-    message: `❌ Opción no válida.\n\n${currentStep.message}`,
-    buttons: currentStep.buttons || null
-  };
+    if (nextStep === "cierre") {
+      if (conv.timeout) {
+        clearTimeout(conv.timeout);
+        conv.timeout = null;
+      }
+      connectionState.conversations.set(userId, { ...conv, step: nextStep, timeout: null });
+      return chatbotFlow[nextStep].message;
+    }
+    // connectionState.conversations.set(userId, { ...conv,step: nextStep  });
+    // return chatbotFlow[nextStep].message;
+
+    conv.timeout = setTimeout(() => {
+      connectionState.socket.sendMessage(userId, {
+        text: "⌛ Como no interactuaste en el último minuto, voy a cerrar esta conversación.\n\n¡Hasta luego! 👋"
+      });
+      connectionState.conversations.delete(userId);
+    }, 10 * 1000);
+
+    connectionState.conversations.set(userId, { ...conv, step: nextStep });
+    return chatbotFlow[nextStep].message;
+
+  }
+  connectionState.conversations.set(userId, conv);
+
+  return `❌ Opción no válida.\n\n${currentStep.message}`;
+    // return { message: `❌ Opción no válida.\n\n${currentStep.message}` };
 }
+
+
+
+
+
+
+
+// function handleIncomingMessage(userId, message) {
+//   const conv = connectionState.conversations.get(userId) || { step: "start" };
+//   const currentStep = chatbotFlow[conv.step];
+//   const option = message.trim().toLowerCase();
+
+//     if (conv.step === "start") {
+//     connectionState.conversations.set(userId, { step: "start" });
+//     return chatbotFlow.start;
+//   }
+
+//   if (currentStep.next[option]) {
+//     const nextStep = currentStep.next[option];
+//     connectionState.conversations.set(userId, { step: nextStep });
+//     return chatbotFlow[nextStep];
+//   }
+
+//   // ❌ Caso inválido
+//   return {
+//     message: `❌ Opción no válida.\n\n${currentStep.message}`,
+//     buttons: currentStep.buttons || null
+//   };
+// }
 
 
 
@@ -155,93 +178,93 @@ export async function startWhatsAppBot() {
   connectionState.socket = sock;
 
   // 🔹 Ahora sí registramos los eventos
-  // sock.ev.on('messages.upsert', async ({ messages }) => {
-  //   const msg = messages[0];
-  //   if (!msg.message?.conversation) return;
+  sock.ev.on('messages.upsert', async ({ messages }) => {
+    const msg = messages[0];
+    if (!msg.message?.conversation) return;
 
-  //   const userId = msg.key.remoteJid;
-  //   const text = msg.message.conversation;
+    const userId = msg.key.remoteJid;
+    const text = msg.message.conversation;
 
-  //   const response = handleIncomingMessage(userId, text);
+    const response = handleIncomingMessage(userId, text);
 
-  //   if (response) {
-  //     await sock.sendMessage(userId, { text: response });
-  //   }
-  // });
+    if (response) {
+      await sock.sendMessage(userId, { text: response });
+    }
+  });
 
-sock.ev.on('messages.upsert', async ({ messages, type }) => {
-  console.log("🔥 Evento messages.upsert detectado:", type, messages?.length);
+// sock.ev.on('messages.upsert', async ({ messages, type }) => {
+//   console.log("🔥 Evento messages.upsert detectado:", type, messages?.length);
 
-  const msg = messages[0];
-  console.log("msg",msg)
-  if (!msg) {
-    console.log("⚠️ No hay mensaje en el evento");
-    return;
-  }
+//   const msg = messages[0];
+//   console.log("msg",msg)
+//   if (!msg) {
+//     console.log("⚠️ No hay mensaje en el evento");
+//     return;
+//   }
 
-  if (!msg.message) {
-    console.log("⚠️ msg.message está vacío:", msg);
-    return;
-  }
+//   if (!msg.message) {
+//     console.log("⚠️ msg.message está vacío:", msg);
+//     return;
+//   }
 
-  if (msg.key.fromMe) {
-    console.log("🙅 Ignorando mensaje enviado por el bot");
-    return;
-  }
+//   if (msg.key.fromMe) {
+//     console.log("🙅 Ignorando mensaje enviado por el bot");
+//     return;
+//   }
 
-  console.log("📩 Raw msg.message:", JSON.stringify(msg.message, null, 2));
+//   console.log("📩 Raw msg.message:", JSON.stringify(msg.message, null, 2));
 
-  const userId = msg.key.remoteJid;
+//   const userId = msg.key.remoteJid;
 
-  let text =
-    msg.message.conversation ||
-    msg.message.extendedTextMessage?.text ||
-    msg.message.buttonsResponseMessage?.selectedButtonId ||
-    msg.message.listResponseMessage?.singleSelectReply?.selectedRowId;
+//   let text =
+//     msg.message.conversation ||
+//     msg.message.extendedTextMessage?.text ||
+//     msg.message.buttonsResponseMessage?.selectedButtonId ||
+//     msg.message.listResponseMessage?.singleSelectReply?.selectedRowId;
 
-  console.log("👉 Texto detectado:", text);
+//   console.log("👉 Texto detectado:", text);
 
-  if (!text) {
-    console.log("⚠️ No se pudo extraer texto del mensaje");
-    return;
-  }
+//   if (!text) {
+//     console.log("⚠️ No se pudo extraer texto del mensaje");
+//     return;
+//   }
 
-  // 👇 Aquí procesamos la respuesta del chatbot
-  const response = handleIncomingMessage(userId, text);
-  console.log("resp");
-  console.log(response)
-  // if (response.buttons) {
-  //   // Enviar botones
-  // // await sock.sendMessage(userId, {
-  // //   buttons: response.buttons,
-  // //   text: response.message,
-  // //   footer: "Selecciona una opción 👇",
-  // //   headerType: 1
-  // // }, { quoted: msg });
-  //   await sock.sendMessage(userId, {
-  //   text: response.message,
-  //   footer: "Selecciona una opción 👇",
-  //   template: {
-  //     hydratedTemplate: {
-  //       hydratedButtons: response.hydratedButtons
-  //     }
-  //   }
-  // }, { quoted: msg });
+//   // 👇 Aquí procesamos la respuesta del chatbot
+//   const response = handleIncomingMessage(userId, text);
+//   console.log("resp");
+//   console.log(response)
+//   // if (response.buttons) {
+//   //   // Enviar botones
+//   // // await sock.sendMessage(userId, {
+//   // //   buttons: response.buttons,
+//   // //   text: response.message,
+//   // //   footer: "Selecciona una opción 👇",
+//   // //   headerType: 1
+//   // // }, { quoted: msg });
+//   //   await sock.sendMessage(userId, {
+//   //   text: response.message,
+//   //   footer: "Selecciona una opción 👇",
+//   //   template: {
+//   //     hydratedTemplate: {
+//   //       hydratedButtons: response.hydratedButtons
+//   //     }
+//   //   }
+//   // }, { quoted: msg });
 
-if (response.buttons) {
-  // Enviar botones interactivos correctamente
-  await sock.sendMessage(userId, {
-    buttons: response.buttons,
-    text: response.message,
-    footer: "Selecciona una opción 👇",
-    headerType: 1
-  }, { quoted: msg });
+// if (response.buttons) {
+//   // Enviar botones interactivos correctamente
+//   await sock.sendMessage(userId, {
+//     buttons: response.buttons,
+//     text: response.message,
+//     footer: "Selecciona una opción 👇",
+//     headerType: 1
+//   }, { quoted: msg });
 
-} else {
-    // Enviar texto plano
-   await sock.sendMessage(userId, { text: response.message }, { quoted: msg });
-  }
-});
+// } else {
+//     // Enviar texto plano
+//    await sock.sendMessage(userId, { text: response.message }, { quoted: msg });
+//   }
+// });
 
 
 

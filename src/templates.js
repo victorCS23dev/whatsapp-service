@@ -61,10 +61,10 @@ export function getTemplateMessage(option, params = {}) {
 
 🎉 ¡Recuerda que tu primera consulta es completamente GRATIS!
 
-Si tienes alguna consulta, no dudes en contactarnos.
+Si tienes alguna consulta, no dudes en contactarnoss.
 
 ¡Te esperamos! 🌟`,
-        image: image || `${BASE_URL}/public/imagenes/Flyer.jpg`
+        image: image 
       };
 
     default:
