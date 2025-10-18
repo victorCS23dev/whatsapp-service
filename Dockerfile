@@ -3,7 +3,9 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+COPY patches ./patches
+
+RUN npm install && npm run postinstall --production
 
 COPY . .
 
