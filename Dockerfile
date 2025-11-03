@@ -14,5 +14,6 @@ COPY . .
 # Expone el puerto
 EXPOSE 5111
 
+
 # Ejecuta la aplicación
 CMD ["node", "index.js"]
