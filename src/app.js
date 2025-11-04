@@ -67,6 +67,15 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
+app.get('/', (req, res) => {
+  console.log('Ruta / hit. Express está vivo.');
+  res.json({
+    service: 'WhatsApp Backend API',
+    status: 'Express Responding',
+    hint: 'Try /api/status'
+  });
+});
+
 // Rutas de autenticación (sin API key)
 app.use('/api/auth', authRoutes);
 
