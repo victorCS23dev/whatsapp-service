@@ -12,6 +12,7 @@ whatsappRouter.use(express.json());
 let sock;
 let isConnected = false;
 let lastKnownError = null;
+let currentQr = null; // <--- AÑADIDO: Almacena la cadena del código QR
 
 // La función de conexión se mantiene igual
 async function connectToWhatsApp() {
@@ -28,6 +29,7 @@ async function connectToWhatsApp() {
     if (qr) {
       console.log('Escanea este QR con WhatsApp:');
       qrcode.generate(qr, { small: true });
+      currentQr = qr; // <--- ACTUALIZACIÓN: Guardar la cadena QR
     }
 
     if (connection === 'close') {
@@ -39,20 +41,33 @@ async function connectToWhatsApp() {
         connectToWhatsApp();
       }
       isConnected = false;
+      currentQr = null; // Resetear QR al desconectarse
     } else if (connection === 'open') {
       console.log('¡Conectado a WhatsApp!');
       isConnected = true;
       lastKnownError = null;
+      currentQr = null; // Limpiar QR al conectarse
     }
   });
 
   sock.ev.on('creds.update', saveCreds);
 }
 
-// Endpoint de estado
+// Endpoint de estado de conexión (conectado/desconectado)
 whatsappRouter.get('/status', (req, res) => {
   res.json({
     connected: isConnected,
+    lastError: lastKnownError,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// AÑADIDO: Endpoint para obtener el estado y la cadena del QR
+whatsappRouter.get('/qr-status', (req, res) => {
+  res.json({
+    connected: isConnected,
+    status: isConnected ? 'CONNECTED' : (currentQr ? 'SCAN_QR' : 'INITIATING/RECONNECTING'),
+    qrCode: currentQr, // Retorna la cadena del QR si existe
     lastError: lastKnownError,
     timestamp: new Date().toISOString()
   });
