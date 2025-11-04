@@ -59,20 +59,26 @@ whatsappRouter.get('/status', (req, res) => {
 });
 
 // Endpoint de diagnóstico de red
+// whatsappRouter.get('/check-network', (req, res) => {
+//   https.get('https://www.google.com', (response) => {
+//     if (response.statusCode === 200) {
+//       return res.json({
+//         network: 'OK',
+//         message: 'Conectividad saliente a Google (443) exitosa.'
+//       });
+//     }
+//   }).on('error', (err) => {
+//     return res.status(500).json({
+//       network: 'FAILED',
+//       error: err.code,
+//       message: 'Fallo de conectividad saliente. Revise Firewall de Hostinger.'
+//     });
+//   });
+// });
 whatsappRouter.get('/check-network', (req, res) => {
-  https.get('https://www.google.com', (response) => {
-    if (response.statusCode === 200) {
-      return res.json({
-        network: 'OK',
-        message: 'Conectividad saliente a Google (443) exitosa.'
-      });
-    }
-  }).on('error', (err) => {
-    return res.status(500).json({
-      network: 'FAILED',
-      error: err.code,
-      message: 'Fallo de conectividad saliente. Revise Firewall de Hostinger.'
-    });
+  res.json({
+    status: 'OK',
+    message: 'Servidor operativo internamente (sin verificar red externa).',
   });
 });
 
