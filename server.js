@@ -3,18 +3,14 @@ import { makeWASocket, DisconnectReason, useMultiFileAuthState } from '@whiskeys
 import qrcode from 'qrcode-terminal';
 import express from 'express';
 import cors from 'cors';
-import https from 'https';
 
-const whatsappRouter = express.Router();
-whatsappRouter.use(cors());
-whatsappRouter.use(express.json());
+const app = express();
+app.use(cors());
+app.use(express.json());
 
 let sock;
 let isConnected = false;
-let lastKnownError = null;
-let currentQr = null; // <--- AÑADIDO: Almacena la cadena del código QR
 
-// La función de conexión se mantiene igual
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info');
 
@@ -29,71 +25,26 @@ async function connectToWhatsApp() {
     if (qr) {
       console.log('Escanea este QR con WhatsApp:');
       qrcode.generate(qr, { small: true });
-      currentQr = qr; // <--- ACTUALIZACIÓN: Guardar la cadena QR
     }
 
     if (connection === 'close') {
-      lastKnownError = lastDisconnect?.error?.output || lastDisconnect?.error;
-
       const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
       console.log('Conexión cerrada. Reconectando...', shouldReconnect);
       if (shouldReconnect) {
         connectToWhatsApp();
       }
       isConnected = false;
-      currentQr = null; // Resetear QR al desconectarse
     } else if (connection === 'open') {
       console.log('¡Conectado a WhatsApp!');
       isConnected = true;
-      lastKnownError = null;
-      currentQr = null; // Limpiar QR al conectarse
     }
   });
 
   sock.ev.on('creds.update', saveCreds);
 }
 
-// Endpoint de estado de conexión (conectado/desconectado)
-whatsappRouter.get('/status', (req, res) => {
-  res.json({
-    connected: isConnected,
-    lastError: lastKnownError,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// AÑADIDO: Endpoint para obtener el estado y la cadena del QR
-whatsappRouter.get('/qr-status', (req, res) => {
-  res.json({
-    connected: isConnected,
-    status: isConnected ? 'CONNECTED' : (currentQr ? 'SCAN_QR' : 'INITIATING/RECONNECTING'),
-    qrCode: currentQr, // Retorna la cadena del QR si existe
-    lastError: lastKnownError,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Endpoint de diagnóstico de red
-whatsappRouter.get('/check-network', (req, res) => {
-  https.get('https://www.google.com', (response) => {
-    if (response.statusCode === 200) {
-      return res.json({
-        network: 'OK',
-        message: 'Conectividad saliente a Google (443) exitosa.'
-      });
-    }
-  }).on('error', (err) => {
-    return res.status(500).json({
-      network: 'FAILED',
-      error: err.code,
-      message: 'Fallo de conectividad saliente. Revise Firewall de Hostinger.'
-    });
-  });
-});
-
-
 // API endpoint para enviar mensajes
-whatsappRouter.post('/send-message', async (req, res) => {
+app.post('/send-message', async (req, res) => {
   try {
     if (!isConnected) {
       return res.status(503).json({
@@ -111,8 +62,9 @@ whatsappRouter.post('/send-message', async (req, res) => {
       });
     }
 
+    // Formatear número (agregar código de país si no lo tiene)
     let formattedPhone = phone.replace(/[^\d]/g, '');
-    if (formattedPhone.length < 8) {
+    if (formattedPhone.length < 8) { // Para Perú
       return res.status(400).json({
         success: false,
         message: 'El número de teléfono debe estar en formato internacional, ej: +51987654321'
@@ -140,4 +92,16 @@ whatsappRouter.post('/send-message', async (req, res) => {
   }
 });
 
-export { whatsappRouter, connectToWhatsApp };
+// Endpoint para verificar estado de conexión
+app.get('/status', (req, res) => {
+  res.json({
+    connected: isConnected,
+    timestamp: new Date().toISOString()
+  });
+});
+
+const PORT = process.env.PORT || 5111;
+app.listen(PORT, () => {
+  console.log(`Servidor WhatsApp corriendo en puerto ${PORT}`);
+  connectToWhatsApp();
+});

@@ -7,11 +7,10 @@ import { Server } from 'socket.io';
 import messageRoutes from './routes/message.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import jwt from 'jsonwebtoken';
-import whatsappService, { startWhatsAppBot } from './services/whatsapp.service.js';
+import whatsappService, {startWhatsAppBot} from './services/whatsapp.service.js';
 import 'dotenv/config';
 import path from "path";
 import { fileURLToPath } from "url";
-import { whatsappRouter, connectToWhatsApp } from '../server.js';
 
 // startWhatsAppBot();
 
@@ -67,23 +66,11 @@ const limiter = rateLimit({
 
 app.use(limiter);
 
-app.get('/', (req, res) => {
-  console.log('Ruta / hit. Express está vivo.');
-  res.json({
-    service: 'WhatsApp Backend API',
-    status: 'Express Responding',
-    hint: 'Try /api/status'
-  });
-});
-
 // Rutas de autenticación (sin API key)
 app.use('/api/auth', authRoutes);
 
 // Rutas de mensajes (con API key)
 app.use('/api', messageRoutes);
-
-// Montamos las rutas de server.js (incluyendo /status y /send-message) 
-app.use('/api', whatsappRouter);
 
 // WebSocket para QR status
 io.on('connection', (socket) => {
@@ -149,5 +136,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: 'Error interno del servidor' });
 });
 
-// 🚨 EXPORTAMOS LA FUNCIÓN DE CONEXIÓN DE WHATSAPP ADEMÁS DE SERVER e IO
-export { server, io, connectToWhatsApp };
+export { server, io };

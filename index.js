@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { server, connectToWhatsApp } from './src/app.js';
+import { server } from './src/app.js';
 import { AUTH_CONFIG } from './src/config/auth.config.js';
 
 const PORT = process.env.PORT || 5111;
@@ -8,6 +8,5 @@ const PORT = process.env.PORT || 5111;
 AUTH_CONFIG.validateConfig();
 
 server.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
-  connectToWhatsApp();
+  console.log(`Servidor WhatsApp corriendo en puerto ${PORT}`);
 });
