@@ -817,9 +817,20 @@ export default {
 
     // 🔹 Obtiene la plantilla (objeto con text + image)
     const plantilla = getTemplateMessage(templateOption, { nombre, fecha, hora,image });
-
+    console.log('Plantilla Image Path:', plantilla.image);
+    
     if (!plantilla || !plantilla.text) {
       throw new Error("Plantilla de mensaje no válida");
+    }
+
+    if (plantilla.image && fs.existsSync(plantilla.image)) {
+        messagePayload.image = { 
+            stream: fs.createReadStream(plantilla.image),
+            caption: plantilla.text
+        };
+    } else {
+        messagePayload.text = plantilla.text;
+        logger.warn('Ruta de imagen no válida o archivo no encontrado, enviando solo texto.');
     }
 
     try {
@@ -837,16 +848,7 @@ export default {
       caption: plantilla.text
     };
 
-    if (plantilla.image && fs.existsSync(plantilla.image)) {
-        messagePayload.image = { 
-            stream: fs.createReadStream(plantilla.image),
-            caption: plantilla.text
-        };
-    } else {
-        messagePayload.text = plantilla.text;
-        logger.warn('Ruta de imagen no válida o archivo no encontrado, enviando solo texto.');
-    }
-
+    
       const result = await connectionState.socket.sendMessage(formattedPhone, messagePayload);
 
       // logger.info("Mensaje enviado exitosamente", {
