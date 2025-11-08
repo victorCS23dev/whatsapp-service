@@ -5,7 +5,7 @@ import logger from '../utils/logger.js';
 import { emitQrStatusUpdate } from '../app.js';
 import { getWhatsAppConfig } from '../config/whatsapp.config.js';
 import { chatbotFlow } from '../chatbot/chatbotFlow.js';
-
+import fs from 'fs';
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', {
