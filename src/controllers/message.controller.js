@@ -40,19 +40,10 @@ export async function sendMessageWithImageDashboard(req, res) {
     const { nombre, templateOption, telefono, fecha, hora } = req.body;
 
     const image = req.file
-      // ? `${BASE_URL}/public/imagenes_dashboard/${req.file.filename}`
-      // : null;
-      ? path.join(
-      process.cwd(), 
-      'src',
-      'public',
-      'imagenes_dashboard', 
-      req.file.filename
-    )
-  : null;
+      ? `${BASE_URL}/public/imagenes_dashboard/${req.file.filename}`
+      : null;
     
       console.log('image',image)
-      console.log('image path (local)', imagePath)
     
       const result = await whatsappService.sendMessageImageDashboard({
       nombre,
@@ -60,7 +51,7 @@ export async function sendMessageWithImageDashboard(req, res) {
       telefono,
       fecha,
       hora,
-      image: imagePath,
+      image,
     });
 
     res.json({
