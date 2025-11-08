@@ -43,13 +43,13 @@ export async function sendMessageWithImageDashboard(req, res) {
       // ? `${BASE_URL}/public/imagenes_dashboard/${req.file.filename}`
       // : null;
       ? path.join(
-          __dirname,
-          '..',
-          'public', 
-          'imagenes_dashboard', 
-          req.file.filename
-        )
-      : null;
+      process.cwd(), 
+      'src',
+      'public',
+      'imagenes_dashboard', 
+      req.file.filename
+    )
+  : null;
     
       console.log('image',image)
       console.log('image path (local)', imagePath)
