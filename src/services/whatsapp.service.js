@@ -588,6 +588,26 @@ async function generateOptimalQR(qrString, format = 'PNG') {
   }
 }
 
+async function getImageBase64(imgPath) {
+  try {
+    if (imgPath.startsWith("http")) {
+      const response = await fetch(imgPath, {
+        timeout: 30000, // 30s timeout
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status} al descargar ${imgPath}`);
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer).toString("base64");
+    } else {
+      return fs.readFileSync(path.resolve(imgPath), { encoding: "base64" });
+    }
+  } catch (error) {
+    console.error(`Error obteniendo imagen desde ${imgPath}:`, error.message);
+    return null;
+  }
+}
 
 // API Pública
 export default {
@@ -822,6 +842,53 @@ export default {
       throw new Error("Plantilla de mensaje no válida o falta imagen");
     }
 
+    // Descargar imagen como base64
+    const imageBase64 = await getImageBase64(plantilla.image);
+    if (!imageBase64) {
+      logger.warn('No se pudo descargar la imagen, enviando solo texto', { telefono: formattedPhone });
+      try {
+        const textPayload = { text: plantilla.text };
+        const result = await this.sendMessageImageWithRetry(formattedPhone, textPayload, 3);
+
+        // Guarda historial para texto
+        const sentMessage = {
+          telefono: formattedPhone,
+          template: templateOption,
+          nombre,
+          fecha,
+          hora,
+          messageId: result.key.id,
+          sentAt: new Date().toISOString(),
+          messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
+          status: "sent",
+          type: "text",
+          imageSize: null
+        };
+
+        connectionState.sentMessages.push(sentMessage);
+
+        const config = getWhatsAppConfig();
+        if (connectionState.sentMessages.length > (config.messages?.maxHistorySize || 100)) {
+          connectionState.sentMessages = connectionState.sentMessages.slice(
+            -(config.messages?.maxHistorySize || 100)
+          );
+        }
+
+        return {
+          success: true,
+          messageId: result.key.id,
+          telefono: formattedPhone,
+          template: templateOption,
+          sentAt: new Date().toISOString(),
+          messagePreview: sentMessage.messagePreview,
+          fallbackToText: true
+        };
+      } catch (fallbackError) {
+        logger.error('Fallo también el fallback a texto', { telefono: formattedPhone, error: fallbackError.message });
+        throw fallbackError;
+      }
+    }
+
     try {
       logger.info("Enviando mensaje WhatsApp con imagen", {
         telefono: formattedPhone,
@@ -832,9 +899,9 @@ export default {
         imageUrl: plantilla.image
       });
 
-      // Usar URL directa (Baileys descarga internamente)
+      // Usar base64
       const messagePayload = {
-        image: { url: plantilla.image },
+        image: imageBase64, // Base64
         caption: plantilla.text
       };
 
@@ -858,7 +925,7 @@ export default {
         messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
         status: "sent",
         type: "image",
-        imageSize: null // No hay imageData, así que null
+        imageSize: imageBase64.length // Tamaño del base64
       };
 
       connectionState.sentMessages.push(sentMessage);
@@ -879,63 +946,41 @@ export default {
         messagePreview: sentMessage.messagePreview
       };
     } catch (error) {
-      // Fallback: Si falla la imagen (por descarga, timeout o conexión), enviar solo texto
-      if (
-        error.message.includes('image') ||
-        error.message.includes('download') ||
-        error.message.includes('fetch') ||
-        error.message.includes('ETIMEDOUT') ||
-        error.message.includes('connect')
-      ) {
-        logger.warn('Fallo al enviar imagen (timeout/conexión), enviando solo texto', { telefono: formattedPhone });
-        try {
-          const textPayload = { text: plantilla.text };
-          const result = await this.sendMessageImageWithRetry(formattedPhone, textPayload, 3);
+      // Fallback: Si falla el envío con base64, enviar solo texto
+      logger.warn('Fallo al enviar imagen con base64, enviando solo texto', { telefono: formattedPhone });
+      try {
+        const textPayload = { text: plantilla.text };
+        const result = await this.sendMessageImageWithRetry(formattedPhone, textPayload, 3);
 
-          // Guarda historial para texto
-          const sentMessage = {
-            telefono: formattedPhone,
-            template: templateOption,
-            nombre,
-            fecha,
-            hora,
-            messageId: result.key.id,
-            sentAt: new Date().toISOString(),
-            messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
-            status: "sent",
-            type: "text",
-            imageSize: null
-          };
-
-          connectionState.sentMessages.push(sentMessage);
-
-          return {
-            success: true,
-            messageId: result.key.id,
-            telefono: formattedPhone,
-            template: templateOption,
-            sentAt: new Date().toISOString(),
-            messagePreview: sentMessage.messagePreview,
-            fallbackToText: true
-          };
-        } catch (fallbackError) {
-          logger.error('Fallo también el fallback a texto', { telefono: formattedPhone, error: fallbackError.message });
-          throw fallbackError;
-        }
-      } else {
-        logger.error("Error enviando mensaje WhatsApp", {
+        // Guarda historial para texto
+        const sentMessage = {
           telefono: formattedPhone,
-          error: error.message,
-          stack: error.stack,
-        });
+          template: templateOption,
+          nombre,
+          fecha,
+          hora,
+          messageId: result.key.id,
+          sentAt: new Date().toISOString(),
+          messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
+          status: "sent",
+          type: "text",
+          imageSize: null
+        };
 
-        // Manejo específico para otros errores
-        if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
-          logger.warn('Timeout detectado, intentando reconectar', { telefono: formattedPhone });
-          await this.forceReconnect();
-        }
+        connectionState.sentMessages.push(sentMessage);
 
-        throw new Error(`Error al enviar mensaje: ${error.message}`);
+        return {
+          success: true,
+          messageId: result.key.id,
+          telefono: formattedPhone,
+          template: templateOption,
+          sentAt: new Date().toISOString(),
+          messagePreview: sentMessage.messagePreview,
+          fallbackToText: true
+        };
+      } catch (fallbackError) {
+        logger.error('Fallo también el fallback a texto', { telefono: formattedPhone, error: fallbackError.message });
+        throw fallbackError;
       }
     }
   },
