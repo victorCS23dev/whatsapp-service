@@ -5,7 +5,6 @@ import logger from '../utils/logger.js';
 import { emitQrStatusUpdate } from '../app.js';
 import { getWhatsAppConfig } from '../config/whatsapp.config.js';
 import { chatbotFlow } from '../chatbot/chatbotFlow.js';
-import axios from 'axios';
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', {
@@ -591,14 +590,33 @@ async function generateOptimalQR(qrString, format = 'PNG') {
 
 async function downloadImageAsBase64(url) {
   try {
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      timeout: 30000, // 30s timeout para descarga
-      headers: { 'User-Agent': 'WhatsAppBot/1.0' } // Evita bloqueos
+    if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+      throw new Error('URL de imagen inválida');
+    }
+    const response = await fetch(url, {
+      timeout: 30000, // 30s timeout (puedes aumentar si es necesario)
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
     });
-    const buffer = Buffer.from(response.data, 'binary');
-    return `data:image/jpeg;base64,${buffer.toString('base64')}`; // Asume JPEG; ajusta MIME si sabes
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} al descargar ${url}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const base64 = `data:${contentType};base64,${buffer.toString('base64')}`;
+    logger.debug('Imagen descargada exitosamente', {
+      url,
+      size: buffer.length,
+      mimeType: contentType
+    });
+    return base64;
   } catch (error) {
+    logger.error('Error descargando imagen', {
+      url,
+      error: error.message
+    });
     throw new Error(`Error descargando imagen: ${error.message}`);
   }
 }
