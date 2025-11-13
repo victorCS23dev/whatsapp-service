@@ -626,8 +626,7 @@ export default {
     }
     
     try {
-      // Si ya hay una sesión activa, no regeneres QR
-      if (connectionState.socket?.user) {
+      if (connectionState.connectionStatus === 'connected') {
         return {
           success: false,
           message: 'Ya estás conectado a WhatsApp. No es necesario escanear otro QR.',
