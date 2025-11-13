@@ -5,8 +5,10 @@ import logger from '../utils/logger.js';
 import { emitQrStatusUpdate } from '../app.js';
 import { getWhatsAppConfig } from '../config/whatsapp.config.js';
 import { chatbotFlow } from '../chatbot/chatbotFlow.js';
-import axios from "axios";
-import fs from "fs";
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', {
@@ -592,18 +594,41 @@ async function generateOptimalQR(qrString, format = 'PNG') {
 
 async function getImageBase64(imgPath) {
   try {
-    if (imgPath.startsWith("http")) {
+    const baseUrl = process.env.BASE_URL;
+    if (imgPath.startsWith(`${baseUrl}/public/`)) {
+      // Convertir URL local en ruta de archivo
+      const relativePath = imgPath.replace(`${baseUrl}/public/`, '');
+      const fullPath = path.resolve(process.cwd(), 'src', 'public', relativePath);
+
+      logger.info('Leyendo imagen localmente desde BASE_URL', { imgPath, fullPath, baseUrl });
+
+      // Leer archivo localmente
+      const imageBuffer = await fs.promises.readFile(fullPath);
+      return imageBuffer;
+    } else if (imgPath.startsWith("http")) {
+      // Para URLs externas reales, usar fetch con timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch(imgPath, {
-        timeout: 30000,
+        signal: controller.signal,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status} al descargar ${imgPath}`);
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} al descargar ${imgPath}`);
+      }
+
       const arrayBuffer = await response.arrayBuffer();
       return Buffer.from(arrayBuffer);
     } else {
-      return fs.readFileSync(path.resolve(imgPath));
+      // Para rutas locales directas
+      const fullPath = path.resolve(imgPath);
+      return await fs.promises.readFile(fullPath);
     }
   } catch (error) {
     console.error(`Error obteniendo imagen desde ${imgPath}:`, error.message);
