@@ -1,6 +1,52 @@
 import { BASE_URL } from "./config/index.js";
 
-//plantilla para enviar mensaje por popups
+// plantilla para enviar mensaje por popups
+export function getTemplate(option, params = {}) {
+  const { nombre = "" } = params;
+
+  switch (option) {
+    case "diseno_web":
+      return {
+        text: `👋 ¡Hola ${nombre}!
+Gracias por escribirnos por nuestro servicio de *Diseño y Desarrollo Web*.
+Un asesor especializado se comunicará contigo muy pronto. 🚀`,
+        image: "imagenes/Flyer.jpg",
+      };
+
+    case "redes_sociales":
+      return {
+        text: `📱 ¡Hola ${nombre}!
+Recibimos tu consulta sobre *Gestión de Redes Sociales*.
+Te ayudaremos a potenciar tu marca y llegar a más clientes. 💡`,
+        image: "imagenes/Flyer.jpg",
+      };
+
+    case "marketing_digital":
+      return {
+        text: `📊 ¡Hola ${nombre}!
+Tu interés en *Marketing y Gestión Digital* fue registrado.
+Muy pronto un especialista te contactará. 🎯`,
+        image: "imagenes/Flyer.jpg",
+      };
+
+    case "branding_diseno":
+      return {
+        text: `🎨 ¡Hola ${nombre}!
+Gracias por contactarnos por *Branding y Diseño*.
+Estamos listos para ayudarte a construir una marca memorable. ✨`,
+        image: "imagenes/Flyer.jpg",
+      };
+
+    default:
+      return {
+        text: `Hola ${nombre}, zzz este es un mensaje automático.`,
+        image: "imagenes/default.jpg",
+      };
+  }
+}
+
+
+/* //plantilla para enviar mensaje por popups
 export function getTemplate(option, params = {}) {
   const {
     nombre = '',
@@ -146,4 +192,4 @@ ${comentario ? `💬 Comentario del administrador:
 📞 Si necesitas ayuda, contáctanos inmediatamente.
 
 ¡Estamos aquí para ayudarte a resolverlo! 🤝`;
-}
+} */
