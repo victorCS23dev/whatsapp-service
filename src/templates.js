@@ -15,7 +15,7 @@ Un asesor especializado se comunicará contigo muy pronto. 🚀`,
 
     case "redes_sociales":
       return {
-        text: `📱 ¡Hola ${nombre}!
+        text: `👋 ¡Hola ${nombre}!
 Recibimos tu consulta sobre *Gestión de Redes Sociales*.
 Te ayudaremos a potenciar tu marca y llegar a más clientes. 💡`,
         image: "imagenes/Flyer.jpg",
@@ -23,7 +23,7 @@ Te ayudaremos a potenciar tu marca y llegar a más clientes. 💡`,
 
     case "marketing_digital":
       return {
-        text: `📊 ¡Hola ${nombre}!
+        text: `👋 ¡Hola ${nombre}!
 Tu interés en *Marketing y Gestión Digital* fue registrado.
 Muy pronto un especialista te contactará. 🎯`,
         image: "imagenes/Flyer.jpg",
@@ -31,7 +31,7 @@ Muy pronto un especialista te contactará. 🎯`,
 
     case "branding_diseno":
       return {
-        text: `🎨 ¡Hola ${nombre}!
+        text: `👋 ¡Hola ${nombre}!
 Gracias por contactarnos por *Branding y Diseño*.
 Estamos listos para ayudarte a construir una marca memorable. ✨`,
         image: "imagenes/Flyer.jpg",
@@ -39,7 +39,7 @@ Estamos listos para ayudarte a construir una marca memorable. ✨`,
 
     default:
       return {
-        text: `Hola ${nombre}, zzz este es un mensaje automático.`,
+        text: `👋 Hola ${nombre}, este es un mensaje automático.`,
         image: "imagenes/default.jpg",
       };
   }
