@@ -1,6 +1,7 @@
 import { makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
-import { getTemplate, getTemplateMessage } from '../templates.js';
+//import { getTemplate, getTemplateMessage } from '../templates.js';
+import { getTemplate } from '../templates.js';
 import logger from '../utils/logger.js';
 import { emitQrStatusUpdate } from '../app.js';
 import { getWhatsAppConfig } from '../config/whatsapp.config.js';
@@ -873,7 +874,7 @@ export default {
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
     // Obtiene la plantilla
-    const plantilla = getTemplateMessage(templateOption, { nombre, fecha, hora, image });
+    //const plantilla = getTemplateMessage(templateOption, { nombre, fecha, hora, image });
 
     if (!plantilla || !plantilla.text || !plantilla.image) {
       throw new Error("Plantilla de mensaje no válida o falta imagen");
