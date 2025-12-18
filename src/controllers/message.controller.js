@@ -36,9 +36,10 @@ const { nombre, templateOption, telefono, fecha, hora, productoName} = req.body;
     });
   }
 }
+
 export async function sendMessageWithImageDashboard(req, res) {
   try {
-    const { nombre, templateOption, telefono, fecha, hora } = req.body;
+    const { nombre, templateOption, telefono } = req.body;
 
     const image = req.file
       ? `${BASE_URL}/public/imagenes_dashboard/${req.file.filename}`
@@ -50,8 +51,6 @@ export async function sendMessageWithImageDashboard(req, res) {
       nombre,
       templateOption,
       telefono,
-      fecha,
-      hora,
       image,
     });
 

@@ -760,7 +760,7 @@ export default {
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
     // 🔹 Obtiene la plantilla (objeto con text + image)
-    const plantilla = getTemplate(templateOption, { nombre, fecha, hora, productoName });
+    const plantilla = getTemplate(templateOption, { nombre, productoName });
 
     if (!plantilla || !plantilla.text) {
       throw new Error("Plantilla de mensaje no válida");
@@ -804,8 +804,6 @@ export default {
         telefono: formattedPhone,
         template: templateOption,
         nombre,
-        fecha,
-        hora,
         messageId: result.key.id,
         sentAt: new Date().toISOString(),
         messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
@@ -859,7 +857,7 @@ export default {
   },
 
 
-  async sendMessageImageDashboard({ telefono, templateOption, nombre, fecha, hora, image }) {
+  async sendMessageImageDashboard({ nombre, templateOption, telefono, image }) {
     if (!connectionState.socket?.user) {
       throw new Error("No conectado a WhatsApp. Por favor, escanea el código QR primero.");
     }
@@ -874,7 +872,7 @@ export default {
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
     // Obtiene la plantilla
-    //const plantilla = getTemplateMessage(templateOption, { nombre, fecha, hora, image });
+    const plantilla = getTemplate(templateOption, { nombre, image });
 
     if (!plantilla || !plantilla.text || !plantilla.image) {
       throw new Error("Plantilla de mensaje no válida o falta imagen");
@@ -892,8 +890,6 @@ export default {
         telefono: formattedPhone,
         template: templateOption,
         nombre,
-        fecha,
-        hora,
         imageUrl: plantilla.image
       });
 
@@ -914,8 +910,6 @@ export default {
         telefono: formattedPhone,
         template: templateOption,
         nombre,
-        fecha,
-        hora,
         messageId: result.key.id,
         sentAt: new Date().toISOString(),
         messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
@@ -946,6 +940,7 @@ export default {
       return { success: false, message: "Error al enviar imagen, no se envió mensaje" };
     }
   },
+  
   async sendMessageWithImage({ imageData, phone, caption }) {
     if (!connectionState.socket?.user) {
       throw new Error('No conectado a WhatsApp. Por favor, escanea el código QR primero.');

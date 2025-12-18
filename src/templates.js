@@ -2,7 +2,8 @@ import { BASE_URL } from "./config/index.js";
 
 // plantilla para enviar mensaje por popups
 export function getTemplate(option, params = {}) {
-  const { nombre = "" } = params;
+  const { nombre = "", image = ""} = params;
+
 
   switch (option) {
     case "1"://diseno_web
@@ -15,7 +16,7 @@ Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 ✅ Un diseño optimizado convierte visitas en ventas reales 💰
 
 💬 Cuéntame: ¿Cual es tu negocio?¿ya tienes web o necesitas crear una desde cero? 👇`,
-        image: "imagenes/1.png",
+        image: image || "imagenes/1.png",
       };
 
     case "2"://redes_sociales
@@ -27,7 +28,7 @@ Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 ⚠️Tu competencia podría estar captando a TU próximo cliente ahora mismo 
 
 💬 Cuéntame: ¿cuál es tu negocio y cuál es tu mayor desafío con tus redes ahora mismo? 👇`,
-        image: "imagenes/3.png",
+        image: image || "imagenes/3.png",
       };
 
     case "3"://marketing_digital
@@ -39,7 +40,7 @@ Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 La diferencia está en la ESTRATEGIA, no solo en estar presente 🎯
 
 💬Cuéntame, ¿Cual es tu negocio y cómo están funcionando tus campañas digitales? ¿Logras atraer clientes, o sientes que podrías estar perdiendo oportunidades?👇`,
-        image: "imagenes/4.png",
+        image: image || "imagenes/4.png",
       };
 
     case "4"://branding_diseno
@@ -52,7 +53,7 @@ Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 🔥 Tu identidad visual es tu carta de presentación. Cuando funciona, vende sola
 
 💬 Cuéntame: ¿Cual es tu negocio?¿quieres crear tu branding desde cero o renovarlo? 👇`,
-        image: "imagenes/7.png",
+        image: image || "imagenes/7.png",
       };
 
     default:
