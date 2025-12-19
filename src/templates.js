@@ -1,14 +1,11 @@
 import { BASE_URL } from "./config/index.js";
 
-// plantilla para enviar mensaje por popups
-export function getTemplate(option, params = {}) {
-  const { nombre = "", image = ""} = params;
-
-
-  switch (option) {
-    case "1"://diseno_web
-      return {
-        text: `¡Hola ${nombre}!👋
+// Lista de plantillas para exponer al front-end
+export const templateList = [
+  {
+    id: "1",
+    name: "DISEÑO Y DESARROLLO WEB",
+    text: `¡Hola {nombre}!👋
 Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 
 ¿Sabías que el 75% de usuarios juzga la credibilidad de tu negocio por tu sitio web?
@@ -16,88 +13,68 @@ Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 ✅ Un diseño optimizado convierte visitas en ventas reales 💰
 
 💬 Cuéntame: ¿Cual es tu negocio?¿ya tienes web o necesitas crear una desde cero? 👇`,
-        image: image || "imagenes/1.png",
-      };
-
-    case "2"://redes_sociales
-      return {
-        text: `¡Hola ${nombre}!👋
+    image: "imagenes/1.png",
+  },
+  {
+    id: "2",
+    name: "GESTIÓN DE REDES SOCIALES",
+    text: `¡Hola {nombre}!👋
 Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 
 ¿Sabías que el 73% de las empresas que gestionan bien sus redes duplican sus ventas en menos de 6 meses ?💰
-⚠️Tu competencia podría estar captando a TU próximo cliente ahora mismo 
+⚠️ Tu competencia podría estar captando a TU próximo cliente ahora mismo 
 
 💬 Cuéntame: ¿cuál es tu negocio y cuál es tu mayor desafío con tus redes ahora mismo? 👇`,
-        image: image || "imagenes/3.png",
-      };
-
-    case "3"://marketing_digital
-      return {
-        text: `¡Hola ${nombre}!👋
+    image: "imagenes/3.png",
+  },
+  {
+    id: "3",
+    name: "MARKETING Y GESTIÓN DIGITAL",
+    text: `¡Hola {nombre}!👋
 Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 
 ¿Sabías que el 68% de empresas invierte en digital pero solo el 22% ve resultados reales? 📊
 La diferencia está en la ESTRATEGIA, no solo en estar presente 🎯
 
-💬Cuéntame, ¿Cual es tu negocio y cómo están funcionando tus campañas digitales? ¿Logras atraer clientes, o sientes que podrías estar perdiendo oportunidades?👇`,
-        image: image || "imagenes/4.png",
-      };
-
-    case "4"://branding_diseno
-      return {
-        text: `Hola ${nombre}👋
+💬Cuéntame, ¿Cual es tu negocio y cómo están funcionando tus campañas digitales? 👇`,
+    image: "imagenes/4.png",
+  },
+  {
+    id: "4",
+    name: "BRANDING Y DISEÑO",
+    text: `Hola {nombre}👋
 Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 
 ¿Sabías que el 77% de consumidores compra por marcas que reconoce visualmente?🎨✨
-⚠️ Si tu marca no te representa, pierdes CONEXIÓN  Y VENTAS 📉
+⚠️ Si tu marca no te representa, pierdes CONEXIÓN Y VENTAS 📉
 🔥 Tu identidad visual es tu carta de presentación. Cuando funciona, vende sola
 
 💬 Cuéntame: ¿Cual es tu negocio?¿quieres crear tu branding desde cero o renovarlo? 👇`,
-        image: image || "imagenes/7.png",
-      };
+    image: "imagenes/7.png",
+  },
+  {
+    id: "5",
+    name: "Prueba",
+    text: `Hola {nombre}👋
+Gracias por contactarnos. Soy un encargado de DIGIMEDIA 🚀
 
-    default:
-      return {
-        text: `✨ ¡Hola ${nombre}! Te saluda Digimedia. 💻🚀
+¿Sabías que el 77% de consumidores compra por marcas que reconoce visualmente?🎨✨
+⚠️ Si tu marca no te representa, pierdes CONEXIÓN Y VENTAS 📉
+🔥 Tu identidad visual es tu carta de presentación. Cuando funciona, vende sola
 
-          Potencia tu presencia online con una página web profesional y personalizada para tu marca.
+💬 Cuéntame: ¿Cual es tu negocio?¿quieres crear tu branding desde cero o renovarlo? 👇`,
+    image: "imagenes/7.png",
+  },
+];
 
-          Te ayudamos con:
-
-            🌐 Diseño web *moderno y a tu medida*.
-            ⚡ Desarrollo optimizado y veloz.
-            📱 100% adaptable a móviles.
-            🎯 SEO listo para posicionarte en Google.
-            💰 Inversión inteligente que multiplica tus ventas.
-
-            👉 Todo en un solo servicio creado para hacer crecer tu negocio sin límites.
-
-              "𝘚𝘪 𝘵𝘶 𝘯𝘦𝘨𝘰𝘤𝘪𝘰 𝘯𝘰 𝘦𝘴𝘵𝘢́ 𝘦𝘯 𝘐𝘯𝘵𝘦𝘳𝘯𝘦𝘵, 𝘵𝘶 𝘯𝘦𝘨𝘰𝘤𝘪𝘰 𝘯𝘰 𝘦𝘹𝘪𝘴𝘵𝘦." -Bill gates
-
-          Tu negocio no puede esperar más para crecer.
-
-          Hazlo digital con *DigiMedia.*`,
-                  image: 'imagenes/Flyer.jpg'  // Ruta relativa local
-      };
-  }
-}
-
-
-/* //plantilla para enviar mensaje por popups
+// Función existente
 export function getTemplate(option, params = {}) {
-  const {
-    nombre = '',
-    fecha = '',
-    hora = '',
-    productoName = 'un producto que te encantará'
-  } = params;
+  const { nombre = "", image = "" } = params;
+  const template = templateList.find(t => t.id === option);
 
-  console.log("📝 Plantilla generada:", params);
-
-  switch (option) {
-    case 'cita_gratis': //bienvenida
-      return {
-        text: `✨ ¡Hola ${nombre}! Te saluda Digimedia. 💻🚀
+  if (!template) return { 
+    name: "General",
+    text: `✨ ¡Hola ${nombre}! Te saluda Digimedia. 💻🚀
 
           Potencia tu presencia online con una página web profesional y personalizada para tu marca.
 
@@ -111,122 +88,17 @@ export function getTemplate(option, params = {}) {
 
             👉 Todo en un solo servicio creado para hacer crecer tu negocio sin límites.
 
-              "𝘚𝘪 𝘵𝘶 𝘯𝘦𝘨𝘰𝘤𝘪𝘰 𝘯𝘰 𝘦𝘴𝘵𝘢́ 𝘦𝘯 𝘐𝘯𝘵𝘦𝘳𝘯𝘦𝘵, 𝘵𝘶 𝘯𝘦𝘨𝘰𝘤𝘪𝘰 𝘯𝘰 𝘦𝘹𝘪𝘴𝘵𝘦." -Bill gates
+              "Sí tu negocio no 𝘦𝘴𝘵𝘢́ en internet, tu negocio no existe." -Bill gates
 
           Tu negocio no puede esperar más para crecer.
 
           Hazlo digital con *DigiMedia.*`,
-                  image: 'imagenes/Flyer.jpg'  // Ruta relativa local
-      };
-    
-    case 'producto': // Nuevo caso para cualquier producto
-      return {
-        text: `🌟 ¡Hola ${nombre}! Te saluda Neon Led Publicidad. 💻🚀
+    image: 'imagenes/Flyer.jpg'
+  };
 
-          Gracias por tu interés en **${productoName}**.
-
-          Para darte la mejor cotización y asesoría personalizada sobre este producto, por favor confírmanos:
-          
-          ✅ *Tipo de acabado* (ej. brillante, mate).
-          ✅ *Tamaño y cantidad* que necesitas.
-          ✅ *Uso principal* (interior/exterior, fijo/móvil).
-
-          Estamos listos para ayudarte a destacar tu marca con **${productoName}**. ¡Cuéntanos más para comenzar!`,
-          image: 'imagenes/Flyer.jpg' // Ruta relativa local
-      };
-
-      default:
-        return {
-          text: `Holas ${nombre}, este es un mensaje automático.`,
-          image: 'imagenes/default.jpg'  // Ruta relativa local
-        };
-  }
+  return {
+    name: template.name,
+    text: template.text.replace('{nombre}', nombre),  // Reemplaza el placeholder
+    image: image || template.image,
+  };
 }
-
-//plantilla para enviar mensaje de acuerdo al mensaje
-export function getTemplateMessage(option, params = {}) {
-  const {
-    nombre = '',
-    fecha = '',
-    hora = '',
-    image=''
-  } = params;
-
-  console.log("📝 Plantilla generada:", params);
-
-  switch (option) {
-    case 'cita_gratis':
-      return {
-        text: `¡Hola 👋
-
-✅ Tu primera cita GRATUITA ha sido confirmada:
-
-📅 Fecha: ${fecha}
-🕐 Hora: ${hora}
-👨‍⚕️ Psicólogo: ${nombre}
-
-🎉 ¡Recuerda que tu primera consulta es completamente GRATIS!
-
-Si tienes alguna consulta, no dudes en contactarnoss.
-
-¡Te esperamos! 🌟`,
-        image: image  // Ya es una ruta relativa pasada desde el frontend
-      };
-
-    default:
-      return {
-        text: `Hola ${nombre}, este es un mensaje automático.`,
-        image: 'imagenes/Flyer.jpg'  // Ruta relativa local
-      };
-  }
-}
-
-// Template para mensaje de pago aceptado
-export function getAcceptanceTemplate(comentario = '') {
-  return `✅ COMPROBANTE APROBADO ✅
-
-🎉 ¡Excelente! Tu comprobante de pago ha sido revisado y aprobado.
-
-📋 Estado de la revisión:
-   - ✅ APROBADO
-   - 📅 Fecha de revisión: ${new Date().toLocaleDateString('es-ES')}
-   - 🕐 Hora: ${new Date().toLocaleTimeString('es-ES')}
-
-${comentario ? `💬 Comentario del administrador:
-"${comentario}"
-
-` : ''}🔒 Tu información está segura con nosotros.
-
-Si tienes alguna pregunta sobre tu pago, no dudes en contactarnos.
-
-¡Gracias por tu paciencia! 🌟`;
-}
-
-// Template para mensaje de pago rechazado
-export function getRejectionTemplate(comentario = '') {
-  return `❌ COMPROBANTE RECHAZADO ❌
-
-⚠️ Tu comprobante de pago no pudo ser aprobado.
-
-📋 Estado de la revisión:
-   - ❌ RECHAZADO
-   - 📅 Fecha de revisión: ${new Date().toLocaleDateString('es-ES')}
-   - 🕐 Hora: ${new Date().toLocaleTimeString('es-ES')}
-
-${comentario ? `💬 Comentario del administrador:
-"${comentario}"
-
-` : ''}🔄 Para resolver este problema:
-
-1. 📸 Sube una nueva foto del comprobante
-2. 🔍 Asegúrate de que se vea claramente:
-   - Número de referencia
-   - Monto pagado
-   - Fecha del pago
-   - Nombre del remitente
-3. 📱 La imagen debe estar nítida y completa
-
-📞 Si necesitas ayuda, contáctanos inmediatamente.
-
-¡Estamos aquí para ayudarte a resolverlo! 🤝`;
-} */
