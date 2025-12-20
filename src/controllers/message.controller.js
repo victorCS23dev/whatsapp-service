@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 export async function sendMessage(req, res) {
   try {
-const { nombre, templateOption, telefono, fecha, hora} = req.body;
+const { nombre, templateOption, telefono, fecha, hora, productoName} = req.body;
 
       const result = await whatsappService.sendMessage({
       nombre,
@@ -19,6 +19,7 @@ const { nombre, templateOption, telefono, fecha, hora} = req.body;
       telefono,
       fecha,
       hora,
+      productoName,
     });
 
     res.json({
@@ -35,9 +36,10 @@ const { nombre, templateOption, telefono, fecha, hora} = req.body;
     });
   }
 }
+
 export async function sendMessageWithImageDashboard(req, res) {
   try {
-    const { nombre, templateOption, telefono, fecha, hora } = req.body;
+    const { nombre, templateOption, telefono } = req.body;
 
     const image = req.file
       ? `${BASE_URL}/public/imagenes_dashboard/${req.file.filename}`
@@ -49,8 +51,6 @@ export async function sendMessageWithImageDashboard(req, res) {
       nombre,
       templateOption,
       telefono,
-      fecha,
-      hora,
       image,
     });
 
@@ -360,10 +360,24 @@ export function resetAuth(req, res) {
         });
       } else {
         console.log(`Carpeta ${authPath} eliminada correctamente.`);
-        return res.json({
-          success: true,
-          message: 'Carpeta auth_info eliminada correctamente',
-          timestamp: new Date().toISOString(),
+        
+        fs.mkdir(authPath, { recursive: true }, (mkdirErr) => {
+          if (mkdirErr) {
+            console.error(`Error creando la carpeta ${authPath}:`, mkdirErr);
+            return res.status(500).json({
+              success: false,
+              message: 'Error al recrear la carpeta auth_info',
+              error: mkdirErr.message,
+              timestamp: new Date().toISOString(),
+            });
+          }
+
+          console.log(`Carpeta ${authPath} recreada correctamente.`);
+          return res.json({
+            success: true,
+            message: 'Carpeta auth_info eliminada y recreada correctamente',
+            timestamp: new Date().toISOString(),
+          });
         });
       }
     });

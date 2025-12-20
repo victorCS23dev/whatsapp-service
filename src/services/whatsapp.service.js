@@ -1,11 +1,15 @@
 import { makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
-import { getTemplate, getTemplateMessage } from '../templates.js';
+//import { getTemplate, getTemplateMessage } from '../templates.js';
+import { getTemplate } from '../templates.js';
 import logger from '../utils/logger.js';
 import { emitQrStatusUpdate } from '../app.js';
 import { getWhatsAppConfig } from '../config/whatsapp.config.js';
 import { chatbotFlow } from '../chatbot/chatbotFlow.js';
-
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
 
 process.on('uncaughtException', (error) => {
   logger.error('Uncaught Exception:', {
@@ -110,6 +114,13 @@ export async function startWhatsAppBot() {
   const sock = makeWASocket({
     printQRInTerminal: true,
     auth: state,
+    mediaTimeoutMs: 60000,
+    connectTimeoutMs: 60000,
+    ws: {
+      timeout: 60000,
+      keepalive: true,
+      keepaliveInterval: 15000,
+    },
   });
 
   sock.ev.on('connection.update', (update) => {
@@ -391,7 +402,7 @@ async function createNewSession() {
       printQRInTerminal: config.security?.printQRInTerminal || false,
       connectTimeoutMs: config.stability?.connectionTimeout || config.connection?.connectTimeoutMs || 30000,
       browser: [config.browser?.name || 'Chrome', config.browser?.version || '120.0.0.0', config.browser?.os || 'Windows'],
-      keepAliveIntervalMs: config.connection?.keepAliveIntervalMs || 15000,
+      keepAliveIntervalMs: config.connection?.keepAliveIntervalMs || 60000,
       markOnlineOnConnect: config.security?.markOnlineOnConnect !== false,
       syncFullHistory: false,
       retryRequestDelayMs: config.connection?.retryRequestDelayMs || 1000,
@@ -582,12 +593,75 @@ async function generateOptimalQR(qrString, format = 'PNG') {
   }
 }
 
+async function getImageBase64(imgPath) {
+  try {
+    const baseUrl = process.env.BASE_URL;
+    if (imgPath.startsWith(`${baseUrl}/public/`)) {
+      // Convertir URL local en ruta de archivo
+      const relativePath = imgPath.replace(`${baseUrl}/public/`, '');
+      const fullPath = path.resolve(process.cwd(), 'src', 'public', relativePath);
+
+      logger.info('Leyendo imagen localmente desde BASE_URL', { imgPath, fullPath, baseUrl });
+
+      // Leer archivo localmente
+      const imageBuffer = await fs.promises.readFile(fullPath);
+      return imageBuffer;
+    } else if (imgPath.startsWith("http")) {
+      // Para URLs externas reales, usar fetch con timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(imgPath, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} al descargar ${imgPath}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } else {
+      // Para rutas locales directas (relativas a src/public/)
+      const fullPath = path.resolve(process.cwd(), 'src', 'public', imgPath);
+      logger.info('Leyendo imagen localmente desde ruta relativa', { imgPath, fullPath });
+      return await fs.promises.readFile(fullPath);
+    }
+  } catch (error) {
+    console.error(`Error obteniendo imagen desde ${imgPath}:`, error.message);
+    return null;
+  }
+}
+
 // API Pública
 export default {
   async requestQR(userId) {
+    
+    logger.info('Requesting new QR code', { userId });    
+    // GUARDÍAN: Si ya estamos conectando o reconectando, no hacer nada.
+    if (connectionState.isConnecting || connectionState.isReconnecting) {
+      logger.warn('Ignoring QR request: A connection attempt is already in progress.');
+      throw {
+        code: 'CONNECTION_IN_PROGRESS',
+        message: 'Ya se está intentando conectar o reconectar. Por favor, espera unos segundos.'
+      };
+    }
+    
     try {
-      logger.info('Requesting new QR code', { userId });
+      if (connectionState.connectionStatus === 'connected') {
+        return {
+          success: false,
+          message: 'Ya estás conectado a WhatsApp. No es necesario escanear otro QR.',
+          isConnected: true
+        };
+      }
 
+      // Si hay un QR activo que aún no expiró, no generes otro
       if (connectionState.qrData && Date.now() < connectionState.qrData.expiresAt) {
         throw {
           code: 'QR_ACTIVE',
@@ -629,40 +703,12 @@ export default {
         };
       }
 
-      // Esperar menos tiempo para que se genere el QR automáticamente
-      let qrGenerated = false;
-      const config = getWhatsAppConfig();
-      const forceQrDelay = config.stability?.qrTimeout ? Math.floor(config.stability.qrTimeout / 5) : 3000;
-
-      setTimeout(() => {
-        try {
-          if (!connectionState.qrData && !qrGenerated) {
-            logger.info('Forcing QR generation after timeout');
-            generateNewQR(connectionState.socket).then(qrImage => {
-              if (!qrGenerated) {
-                qrGenerated = true;
-                try {
-                  emitQrStatusUpdate(getQRStatus());
-                } catch (emitError) {
-                  logger.error('Error emitting forced QR update', { error: emitError.message });
-                }
-              }
-            }).catch(error => {
-              logger.error('Error forcing QR generation', { error: error.message });
-            });
-          }
-        } catch (error) {
-          logger.error('Error in QR generation timeout', { error: error.message });
-        }
-      }, forceQrDelay);
-
       connectionState.userConnections.set(userId, [...userHistory, now].slice(-10));
 
       return {
         success: true,
         message: `Solicitud de QR procesada. El QR se generará automáticamente en ${forceQrDelay / 1000} segundos.`,
-        status: 'processing',
-        estimatedTime: forceQrDelay
+        status: 'processing'
       };
     } catch (error) {
       logger.error('Error generating QR', {
@@ -673,15 +719,16 @@ export default {
       });
 
       try {
-        connectionState.isConnecting = false;
-        connectionState.connectionStatus = 'disconnected';
+        // Reseteamos el estado si el error NO fue nuestro bloqueo
+        if (error.code !== 'CONNECTION_IN_PROGRESS') {
+          connectionState.isConnecting = false;
+          connectionState.connectionStatus = 'disconnected';
+        }
       } catch (resetError) {
         logger.error('Error resetting state', { error: resetError.message });
       }
 
       throw error;
-    } finally {
-      connectionState.isConnecting = false;
     }
   },
 
@@ -700,7 +747,7 @@ export default {
     return getQRStatus();
   },
 
- async sendMessage({ telefono, templateOption, nombre, fecha, hora }) {
+  async sendMessage({ telefono, templateOption, nombre, fecha, hora, productoName }) {
     if (!connectionState.socket?.user) {
       throw new Error("No conectado a WhatsApp. Por favor, escanea el código QR primero.");
     }
@@ -713,10 +760,24 @@ export default {
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
     // 🔹 Obtiene la plantilla (objeto con text + image)
-    const plantilla = getTemplate(templateOption, { nombre, fecha, hora });
+    const plantilla = getTemplate(templateOption, { nombre, productoName });
 
     if (!plantilla || !plantilla.text) {
       throw new Error("Plantilla de mensaje no válida");
+    }
+
+    let messagePayload = { text: plantilla.text };
+
+    // Si la plantilla tiene imagen, descargarla localmente como buffer
+    if (plantilla.image) {
+      const imageBuffer = await getImageBase64(plantilla.image);
+      if (!imageBuffer) {
+        throw new Error(`No se pudo cargar la imagen: ${plantilla.image}`);
+      }
+      messagePayload = {
+        image: imageBuffer,
+        caption: plantilla.text
+      };
     }
 
     try {
@@ -727,11 +788,8 @@ export default {
         fecha,
         hora,
         messageLength: plantilla.text.length,
+        hasImage: !!plantilla.image
       });
-
-      const messagePayload = plantilla.image
-        ? { image: { url: plantilla.image }, caption: plantilla.text }
-        : { text: plantilla.text };
 
       const result = await connectionState.socket.sendMessage(formattedPhone, messagePayload);
 
@@ -746,14 +804,11 @@ export default {
         telefono: formattedPhone,
         template: templateOption,
         nombre,
-        fecha,
-        hora,
         messageId: result.key.id,
         sentAt: new Date().toISOString(),
-        messagePreview:
-          plantilla.text.substring(0, 100) +
-          (plantilla.text.length > 100 ? "..." : ""),
+        messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
         status: "sent",
+        hasImage: !!plantilla.image
       };
 
       connectionState.sentMessages.push(sentMessage);
@@ -799,14 +854,15 @@ export default {
 
       throw new Error(`Error al enviar mensaje: ${error.message}`);
     }
- },
+  },
 
 
-  async sendMessageImageDashboard({ telefono, templateOption, nombre, fecha, hora, image }) {
+  async sendMessageImageDashboard({ nombre, templateOption, telefono, image }) {
     if (!connectionState.socket?.user) {
       throw new Error("No conectado a WhatsApp. Por favor, escanea el código QR primero.");
     }
-      console.log('imagedash',image)
+
+    console.log('imagedash', image); // Mantén para debugging
 
     const cleanPhone = telefono.replace(/\D/g, "");
     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
@@ -815,59 +871,61 @@ export default {
 
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
-    // 🔹 Obtiene la plantilla (objeto con text + image)
-    const plantilla = getTemplateMessage(templateOption, { nombre, fecha, hora,image });
+    // Obtiene la plantilla
+    const plantilla = getTemplate(templateOption, { nombre, image });
 
-    if (!plantilla || !plantilla.text) {
-      throw new Error("Plantilla de mensaje no válida");
+    if (!plantilla || !plantilla.text || !plantilla.image) {
+      throw new Error("Plantilla de mensaje no válida o falta imagen");
+    }
+
+    // Descargar imagen como base64
+    const imageBase64 = await getImageBase64(plantilla.image);
+    if (!imageBase64) {
+      logger.warn('No se pudo descargar la imagen, no se enviará ningún mensaje', { telefono: formattedPhone });
+      return { success: false, message: "No se envió mensaje por error de imagen" };
     }
 
     try {
-      logger.info("Enviando mensaje WhatsApp", {
+      logger.info("Enviando mensaje WhatsApp con imagen", {
         telefono: formattedPhone,
         template: templateOption,
         nombre,
-        fecha,
-        hora,
-         image: plantilla.image,
+        imageUrl: plantilla.image
       });
 
-    const messagePayload = {
-      image: { url: plantilla.image },
-      caption: plantilla.text
-    };
+      const messagePayload = {
+        image: imageBase64,
+        caption: plantilla.text
+      };
 
-      const result = await connectionState.socket.sendMessage(formattedPhone, messagePayload);
+      const result = await this.sendMessageImageWithRetry(formattedPhone, messagePayload, 3);
 
-      // logger.info("Mensaje enviado exitosamente", {
-      //   telefono: formattedPhone,
-      //   messageId: result.key.id,
-      //   timestamp: new Date().toISOString(),
-      // });
+      logger.info("Mensaje enviado exitosamente", {
+        telefono: formattedPhone,
+        messageId: result.key.id,
+        timestamp: new Date().toISOString(),
+      });
 
-      // // Guarda historial
-      // const sentMessage = {
-      //   telefono: formattedPhone,
-      //   template: templateOption,
-      //   nombre,
-      //   fecha,
-      //   hora,
-      //   messageId: result.key.id,
-      //   sentAt: new Date().toISOString(),
-      //   messagePreview:
-      //     plantilla.text.substring(0, 100) +
-      //     (plantilla.text.length > 100 ? "..." : ""),
-      //   status: "sent",
-      // };
+      const sentMessage = {
+        telefono: formattedPhone,
+        template: templateOption,
+        nombre,
+        messageId: result.key.id,
+        sentAt: new Date().toISOString(),
+        messagePreview: plantilla.text.substring(0, 100) + (plantilla.text.length > 100 ? "..." : ""),
+        status: "sent",
+        type: "image",
+        imageSize: imageBase64.length
+      };
 
-      // connectionState.sentMessages.push(sentMessage);
+      connectionState.sentMessages.push(sentMessage);
 
-      // const config = getWhatsAppConfig();
-      // if (connectionState.sentMessages.length > (config.messages?.maxHistorySize || 100)) {
-      //   connectionState.sentMessages = connectionState.sentMessages.slice(
-      //     -(config.messages?.maxHistorySize || 100)
-      //   );
-      // }
+      const config = getWhatsAppConfig();
+      if (connectionState.sentMessages.length > (config.messages?.maxHistorySize || 100)) {
+        connectionState.sentMessages = connectionState.sentMessages.slice(
+          -(config.messages?.maxHistorySize || 100)
+        );
+      }
 
       return {
         success: true,
@@ -875,37 +933,14 @@ export default {
         telefono: formattedPhone,
         template: templateOption,
         sentAt: new Date().toISOString(),
-        // messagePreview: sentMessage.messagePreview,
-        messagePreview: plantilla.text.substring(0, 100) +
-        (plantilla.text.length > 100 ? "..." : "")
+        messagePreview: sentMessage.messagePreview
       };
     } catch (error) {
-      logger.error("Error enviando mensaje WhatsApp", {
-        telefono: formattedPhone,
-        error: error.message,
-        stack: error.stack,
-      });
-
-      // if (error.message.includes("disconnected")) {
-      //   await cleanupConnection();
-      //   throw new Error("Conexión perdida con WhatsApp. Por favor, escanea el código QR nuevamente.");
-      // }
-
-      // if (error.message.includes("not-authorized")) {
-      //   throw new Error("No tienes autorización para enviar mensajes a este número.");
-      // }
-
-      // if (error.message.includes("forbidden")) {
-      //   throw new Error("No se puede enviar mensajes a este número. Verifica que el número sea válido.");
-      // }
-
-      // if (error.message.includes("rate limit")) {
-      //   throw new Error("Límite de mensajes alcanzado. Espera un momento antes de enviar más mensajes.");
-      // }
-
-      throw new Error(`Error al enviar mensaje: ${error.message}`);
+      logger.error('Fallo al enviar mensaje con imagen, no se enviará nada', { telefono: formattedPhone, error: error.message });
+      return { success: false, message: "Error al enviar imagen, no se envió mensaje" };
     }
- },
+  },
+  
   async sendMessageWithImage({ imageData, phone, caption }) {
     if (!connectionState.socket?.user) {
       throw new Error('No conectado a WhatsApp. Por favor, escanea el código QR primero.');
