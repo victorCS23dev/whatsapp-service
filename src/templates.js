@@ -1,4 +1,5 @@
 import { BASE_URL } from "./config/index.js";
+import logger from './utils/logger.js';
 
 // Lista de plantillas para exponer al front-end
 export const templateList = [
@@ -8,7 +9,7 @@ export const templateList = [
     messages: {
       1: {
         text: `Hola {nombre} 👋
-Gracias por contactarnos. Soy [nombre del responsable] de DIGIMEDIA 🚀
+Gracias por contactarnos. Soy Administrador de DIGIMEDIA 🚀
 
 ¿Sabías que el 75% de usuarios juzga la credibilidad de tu negocio por tu sitio web?
 ✅ Sin una web profesional, pierdes clientes antes de que te conozcan
@@ -44,7 +45,7 @@ Si deseas, puedo revisar GRATIS y decirte 3 mejoras clave.
     messages: {
       1: {
         text: `Hola {nombre} 👋
-Gracias por contactarnos. Soy [nombre del responsable] de DIGIMEDIA 🚀
+Gracias por contactarnos. Soy Administrador de DIGIMEDIA 🚀
 ¿Sabías que el 73% de las empresas que gestionan bien sus redes duplican sus ventas en menos de 6 meses ?💰
 ⚠️Tu competencia podría estar captando a TU próximo cliente ahora mismo 
 💬 Cuéntame: ¿cuál es tu negocio y cuál es tu mayor desafío con tus redes ahora mismo? 👇
@@ -78,7 +79,7 @@ Si quieres, te doy 3 ideas GRATIS para mejorar tu alcance.
     messages: {
       1: {
         text: `Hola {nombre} 👋
-Gracias por contactarnos. Soy [nombre del responsable] de DIGIMEDIA 🚀
+Gracias por contactarnos. Soy Administrador de DIGIMEDIA 🚀
 ¿Sabías que el 68% de empresas invierte en digital pero solo el 22% ve resultados reales? 📊
 La diferencia está en la ESTRATEGIA, no solo en estar presente 🎯
 💬Cuéntame, ¿Cual es tu negocio y cómo están funcionando tus campañas digitales? ¿Logras atraer clientes, o sientes que podrías estar perdiendo oportunidades?👇 `,
@@ -112,7 +113,7 @@ Si quieres, reviso tu estrategia GRATIS y te digo dónde puedes mejorar.
     messages: {
       1: {
         text: `Hola {nombre} 👋
-Gracias por contactarnos. Soy [nombre del responsable] de DIGIMEDIA 🚀
+Gracias por contactarnos. Soy Administrador de DIGIMEDIA 🚀
 ¿Sabías que el 77% de consumidores compra por marcas que reconoce visualmente?🎨✨
 ⚠️ Si tu marca no te representa, pierdes CONEXIÓN  Y VENTAS 📉
 🔥 Tu identidad visual es tu carta de presentación. Cuando funciona, vende sola
@@ -144,10 +145,10 @@ Si quieres, reviso tu estrategia GRATIS y te digo qué potenciar. 🚀
 ];
 
 
-export function getTemplate(id_servicio, messageNumber, params = {}) {
-  const { nombre = "" } = params;
+export function getTemplate(id_service, messageNumber, params = {}) {
+  const { nombre = "", image = null } = params;
 
-  const template = templateList.find(p => p.id === id_servicio);
+  const template = templateList.find(p => p.id === Number(id_service));
 
   if (!template) return { 
     name: "General",
@@ -198,10 +199,12 @@ export function getTemplate(id_servicio, messageNumber, params = {}) {
           Hazlo digital con *DigiMedia.*`,
     image: 'imagenes/Flyer.jpg'
   };
+  
+  const finalImage = image || message.image;
 
   return {
     name: template.name,
     text: message.text.replace('{nombre}', nombre),  // Reemplaza el placeholder
-    image: message.image || 'imagenes/Flyer.jpg',
+    image: finalImage,
   };
 }

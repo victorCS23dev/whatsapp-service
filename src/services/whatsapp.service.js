@@ -857,7 +857,7 @@ export default {
   },
 
 
-  async sendMessageImageDashboard({ nombre, templateOption, telefono, image }) {
+  async sendMessageImageDashboard({ nombre, id_service, telefono, image }) {
     if (!connectionState.socket?.user) {
       throw new Error("No conectado a WhatsApp. Por favor, escanea el código QR primero.");
     }
@@ -872,10 +872,14 @@ export default {
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
     // Obtiene la plantilla
-    const plantilla = getTemplate(templateOption, { nombre, image });
+    const plantilla = getTemplate(id_service, 1, { nombre, image });
 
-    if (!plantilla || !plantilla.text || !plantilla.image) {
-      throw new Error("Plantilla de mensaje no válida o falta imagen");
+    if (!plantilla || !plantilla.text) {
+      throw new Error("Plantilla de mensaje no válida");
+    }
+
+    if (!plantilla.image) {
+      throw new Error("No se encontró imagen para enviar");
     }
 
     // Descargar imagen como base64
@@ -888,7 +892,7 @@ export default {
     try {
       logger.info("Enviando mensaje WhatsApp con imagen", {
         telefono: formattedPhone,
-        template: templateOption,
+        template: id_service,
         nombre,
         imageUrl: plantilla.image
       });
@@ -908,7 +912,7 @@ export default {
 
       const sentMessage = {
         telefono: formattedPhone,
-        template: templateOption,
+        template: id_service,
         nombre,
         messageId: result.key.id,
         sentAt: new Date().toISOString(),
@@ -931,7 +935,7 @@ export default {
         success: true,
         messageId: result.key.id,
         telefono: formattedPhone,
-        template: templateOption,
+        template: id_service,
         sentAt: new Date().toISOString(),
         messagePreview: sentMessage.messagePreview
       };
